@@ -28,35 +28,30 @@ const contactSchema = new mongoose.Schema({
 const Contact = mongoose.model("Contact", contactSchema);
 
 const SOURCE_ACCESS_TOKEN = process.env.SOURCE_ACCESS_TOKEN;
-// console.log("SOURCE_ACCESS_TOKEN", SOURCE_ACCESS_TOKEN);
+console.log("SOURCE_ACCESS_TOKEN", SOURCE_ACCESS_TOKEN);
 const DESTINATION_ACCESS_TOKEN = process.env.DESTINATION_ACCESS_TOKEN;
-
+console.log("DESTINATION_ACCESS_TOKEN", DESTINATION_ACCESS_TOKEN);
 app.post("/webhook", async (req, res) => {
   // console.log("body",req.body);
   res.status(200).send("Event received");
-  const srcaccessToken = "pat-na1-df6017ee-c63d-41b0-bf82-7e526ed9816f";
-  const desaccessToken = "pat-na1-589bbbf5-1da4-4196-af18-a12e5a95f9ec";
+
   // Fetch the list of contacts
   const response = await axios.get(
     "https://api.hubapi.com/crm/v3/objects/contacts",
     {
       headers: {
-        Authorization: `Bearer ${srcaccessToken}`,
+        Authorization: `Bearer ${SOURCE_ACCESS_TOKEN}`,
         "Content-Type": "application/json",
       },
     }
   );
-
   // Get the first contact from the response data
   const data1 = response.data.results;
   // console.log("Fetched contact data:", data1)
   for (const data of data1) {
-    const desAccessToken = "pat-na1-589bbbf5-1da4-4196-af18-a12e5a95f9ec";
     try {
       // Step 1: Search for existing contact by email
       const email = data.properties.email;
-      // console.log("email------------------------->", email);
-      // console.log("accessToken.........", desAccessToken);
       // Fetch the HubSpot contact ID using the Salesforce contact email
       const contactResponse = await axios.post(
         `https://api.hubapi.com/crm/v3/objects/contacts/search`,
@@ -75,7 +70,7 @@ app.post("/webhook", async (req, res) => {
         },
         {
           headers: {
-            Authorization: `Bearer ${desAccessToken}`,
+            Authorization: `Bearer ${DESTINATION_ACCESS_TOKEN}`,
             "Content-Type": "application/json",
           },
         }
@@ -99,7 +94,7 @@ app.post("/webhook", async (req, res) => {
           },
           {
             headers: {
-              Authorization: `Bearer ${desAccessToken}`,
+              Authorization: `Bearer ${DESTINATION_ACCESS_TOKEN}`,
               "Content-Type": "application/json",
             },
           }
@@ -118,7 +113,7 @@ app.post("/webhook", async (req, res) => {
           },
           {
             headers: {
-              Authorization: `Bearer ${desAccessToken}`,
+              Authorization: `Bearer ${DESTINATION_ACCESS_TOKEN}`,
               "Content-Type": "application/json",
             },
           }
@@ -126,24 +121,24 @@ app.post("/webhook", async (req, res) => {
         console.log(`Contact ${data.properties.email} created successfully.`);
       }
     } catch (error) {
-      throw error; // Exit or re-throw based on your error-handling approach
+      throw error; 
     }
   }
 
-  const syncNotes = await processNotesForContacts(data1, srcaccessToken);
-  const syncTasks = await processTaskForContacts(data1, srcaccessToken);
-  const syncMeetings= await processMeetingForContacts(data1, srcaccessToken);
-  const syncCalls= await processCallForContacts(data1, srcaccessToken);
+  const syncNotes = await processNotesForContacts(data1, SOURCE_ACCESS_TOKEN);
+  const syncTasks = await processTaskForContacts(data1, SOURCE_ACCESS_TOKEN);
+  const syncMeetings= await processMeetingForContacts(data1, SOURCE_ACCESS_TOKEN);
+  const syncCalls= await processCallForContacts(data1, SOURCE_ACCESS_TOKEN);
 
   const fetchEmail1 = fetchEmailsForContacts(
     data1,
-    srcaccessToken,
-    desaccessToken
+    SOURCE_ACCESS_TOKEN,
+    DESTINATION_ACCESS_TOKEN
   );
 });
 
 
-async function processNotesForContacts(data1, access_token) {
+async function processNotesForContacts(data1, SOURCE_ACCESS_TOKEN) {
   for (const data of data1) {
     const email = data.properties.email;
     if (!email) {
@@ -151,10 +146,10 @@ async function processNotesForContacts(data1, access_token) {
       continue;
     }
 
-    const notes = await fetchNotesFromHubSpot(data.id, access_token);
+    const notes = await fetchNotesFromHubSpot(data.id, SOURCE_ACCESS_TOKEN);
     console.log(`Notes for Contact ${data.id}:`, notes);
-    // // Sync only the current note with HubSpot
-    await syncNotesWithHubSpot(email, notes);
+    // Sync only the current note with HubSpot
+    await syncNotesWithHubSpot(email, notes,DESTINATION_ACCESS_TOKEN);
   }
 }
 
@@ -187,11 +182,11 @@ async function fetchNotesFromHubSpot(contactId, hubspotAccessToken) {
     }
   }
   // Function to sync notes with HubSpot, ensuring contact ID is verified
-  async function syncNotesWithHubSpot(email, notes) {
-    const hubspotAccessToken = "pat-na1-589bbbf5-1da4-4196-af18-a12e5a95f9ec";
+  async function syncNotesWithHubSpot(email, notes,DESTINATION_ACCESS_TOKEN) {
+    // const hubspotAccessToken = "pat-na1-589bbbf5-1da4-4196-af18-a12e5a95f9ec";
     const hubSpotContactId = await getHubSpotContactIdByEmail(
       email,
-      hubspotAccessToken
+      DESTINATION_ACCESS_TOKEN
     );
     // console.log("hubSpotContactId", hubSpotContactId);
     if (!hubSpotContactId) {
@@ -222,7 +217,7 @@ async function fetchNotesFromHubSpot(contactId, hubspotAccessToken) {
           },
           {
             headers: {
-              Authorization: `Bearer ${hubspotAccessToken}`,
+              Authorization: `Bearer ${DESTINATION_ACCESS_TOKEN}`,
               "Content-Type": "application/json",
             },
           }
@@ -275,10 +270,9 @@ async function fetchNotesFromHubSpot(contactId, hubspotAccessToken) {
   }
 
 // Function to process tasks for contacts
-async function processTaskForContacts(data1, access_token) {
+async function processTaskForContacts(data1, SOURCE_ACCESS_TOKEN) {
   for (const data of data1) {
-    // console.log("data------------------------>", data);
-    // console.log("dataId----------------------------------", data.id);
+    
     const email = data.properties.email;
     // console.log("email-------->", email);
     if (!email) {
@@ -286,23 +280,23 @@ async function processTaskForContacts(data1, access_token) {
       continue;
     }
 
-    const tasks = await fetchTasksFromHubSpot(data.id, access_token);
+    const tasks = await fetchTasksFromHubSpot(data.id, SOURCE_ACCESS_TOKEN);
     // console.log(`Tasks for Contact ${data.id}:`, tasks);
 
     // Sync only the current task with HubSpot or perform further processing
-    await syncTasksWithHubSpot(email, tasks);
+    await syncTasksWithHubSpot(email, tasks,DESTINATION_ACCESS_TOKEN);
   }
 }
 
 // Function to fetch tasks
-async function fetchTasksFromHubSpot(dataId, srcaccessToken) {
+async function fetchTasksFromHubSpot(dataId, SOURCE_ACCESS_TOKEN) {
   // console.log("dataId", dataId);
   try {
     const url = `https://api.hubapi.com/engagements/v1/engagements/associated/CONTACT/${dataId}/paged?limit=100`;
 
     const response = await axios.get(url, {
       headers: {
-        Authorization: `Bearer ${srcaccessToken}`,
+        Authorization: `Bearer ${SOURCE_ACCESS_TOKEN}`,
         "Content-Type": "application/json",
       },
     });
@@ -324,11 +318,11 @@ async function fetchTasksFromHubSpot(dataId, srcaccessToken) {
 }
 
 // Function to sync tasks with HubSpot
-async function syncTasksWithHubSpot(email, tasks) {
-  const hubspotAccessToken = "pat-na1-589bbbf5-1da4-4196-af18-a12e5a95f9ec";
+async function syncTasksWithHubSpot(email, tasks,DESTINATION_ACCESS_TOKEN) {
+  // const hubspotAccessToken = "pat-na1-589bbbf5-1da4-4196-af18-a12e5a95f9ec";
   const hubSpotContactId = await getHubSpotContactIdByEmail(
     email,
-    hubspotAccessToken
+    DESTINATION_ACCESS_TOKEN
   );
   // console.log("hubSpotContactId", hubSpotContactId);
   if (!hubSpotContactId) {
@@ -356,7 +350,7 @@ async function syncTasksWithHubSpot(email, tasks) {
         },
         {
           headers: {
-            Authorization: `Bearer ${hubspotAccessToken}`,
+            Authorization: `Bearer ${DESTINATION_ACCESS_TOKEN}`,
             "Content-Type": "application/json",
           },
         }
@@ -375,10 +369,9 @@ async function syncTasksWithHubSpot(email, tasks) {
 }
 
 // Function to process meetings for contacts
-async function processMeetingForContacts(data1, access_token) {
+async function processMeetingForContacts(data1, SOURCE_ACCESS_TOKEN) {
   for (const data of data1) {
-    // console.log("data------------------------>", data);
-    // console.log("dataId----------------------------------", data.id);
+    
     const email = data.properties.email;
     // console.log("email-------->", email);
     if (!email) {
@@ -386,23 +379,23 @@ async function processMeetingForContacts(data1, access_token) {
       continue;
     }
 
-    const meetings = await fetchMeetingsFromHubSpot(data.id, access_token);
+    const meetings = await fetchMeetingsFromHubSpot(data.id, SOURCE_ACCESS_TOKEN);
     console.log(`Meetings for Contact ${data.id}:`, meetings);
 
     // Sync only the current task with HubSpot or perform further processing
-    await syncMeetingsWithHubSpot(email, meetings);
+    await syncMeetingsWithHubSpot(email, meetings,DESTINATION_ACCESS_TOKEN);
   }
 }
 
 // Function to fetch meetings
-async function fetchMeetingsFromHubSpot(dataId, srcAccessToken) {
+async function fetchMeetingsFromHubSpot(dataId, SOURCE_ACCESS_TOKEN) {
   // console.log("Fetching meetings for contact ID:", dataId);
   try {
     const url = `https://api.hubapi.com/engagements/v1/engagements/associated/CONTACT/${dataId}/paged?limit=100`;
 
     const response = await axios.get(url, {
       headers: {
-        Authorization: `Bearer ${srcAccessToken}`,
+        Authorization: `Bearer ${SOURCE_ACCESS_TOKEN}`,
         "Content-Type": "application/json",
       },
     });
@@ -424,11 +417,11 @@ async function fetchMeetingsFromHubSpot(dataId, srcAccessToken) {
 }
 
 // Function to sync meetins with HubSpot
-async function syncMeetingsWithHubSpot(email, meetings) {
-  const hubspotAccessToken = "pat-na1-589bbbf5-1da4-4196-af18-a12e5a95f9ec";
+async function syncMeetingsWithHubSpot(email, meetings,DESTINATION_ACCESS_TOKEN) {
+  // const hubspotAccessToken = "pat-na1-589bbbf5-1da4-4196-af18-a12e5a95f9ec";
   const hubSpotContactId = await getHubSpotContactIdByEmail(
     email,
-    hubspotAccessToken
+    DESTINATION_ACCESS_TOKEN
   );
   // console.log("hubSpotContactId", hubSpotContactId);
   if (!hubSpotContactId) {
@@ -456,7 +449,7 @@ async function syncMeetingsWithHubSpot(email, meetings) {
         },
         {
           headers: {
-            Authorization: `Bearer ${hubspotAccessToken}`,
+            Authorization: `Bearer ${DESTINATION_ACCESS_TOKEN}`,
             "Content-Type": "application/json",
           },
         }
@@ -475,10 +468,8 @@ async function syncMeetingsWithHubSpot(email, meetings) {
 }
 
 // Function to process calls for contacts
-async function processCallForContacts(data1, access_token) {
+async function processCallForContacts(data1, SOURCE_ACCESS_TOKEN) {
   for (const data of data1) {
-    // console.log("data------------------------>", data);
-    // console.log("dataId----------------------------------", data.id);
     const email = data.properties.email;
     // console.log("email-------->", email);
     if (!email) {
@@ -486,23 +477,23 @@ async function processCallForContacts(data1, access_token) {
       continue;
     }
 
-    const calls = await fetchCallsFromHubSpot(data.id, access_token);
+    const calls = await fetchCallsFromHubSpot(data.id, SOURCE_ACCESS_TOKEN);
     console.log(`Calls for Contact ${data.id}:`, calls);
 
     // Sync only the current call with the other HubSpot instance or perform further processing
-    await syncCallsWithHubSpot(email, calls);
+    await syncCallsWithHubSpot(email, calls,DESTINATION_ACCESS_TOKEN);
   }
 }
 
 // Function to fetch calls
-async function fetchCallsFromHubSpot(dataId, srcAccessToken) {
+async function fetchCallsFromHubSpot(dataId, SOURCE_ACCESS_TOKEN) {
   // console.log("Fetching calls for contact ID:", dataId);
   try {
     const url = `https://api.hubapi.com/engagements/v1/engagements/associated/CONTACT/${dataId}/paged?limit=100`;
 
     const response = await axios.get(url, {
       headers: {
-        Authorization: `Bearer ${srcAccessToken}`,
+        Authorization: `Bearer ${SOURCE_ACCESS_TOKEN}`,
         "Content-Type": "application/json",
       },
     });
@@ -524,11 +515,11 @@ async function fetchCallsFromHubSpot(dataId, srcAccessToken) {
 }
 
 // Function to sync calls with another HubSpot instance
-async function syncCallsWithHubSpot(email, calls) {
-  const hubspotAccessToken = "pat-na1-589bbbf5-1da4-4196-af18-a12e5a95f9ec";
+async function syncCallsWithHubSpot(email, calls,DESTINATION_ACCESS_TOKEN) {
+  // const hubspotAccessToken = "pat-na1-589bbbf5-1da4-4196-af18-a12e5a95f9ec";
   const hubSpotContactId = await getHubSpotContactIdByEmail(
     email,
-    hubspotAccessToken
+    DESTINATION_ACCESS_TOKEN
   );
   // console.log("hubSpotContactId", hubSpotContactId);
   if (!hubSpotContactId) {
@@ -556,7 +547,7 @@ async function syncCallsWithHubSpot(email, calls) {
         },
         {
           headers: {
-            Authorization: `Bearer ${hubspotAccessToken}`,
+            Authorization: `Bearer ${DESTINATION_ACCESS_TOKEN}`,
             "Content-Type": "application/json",
           },
         }
@@ -596,8 +587,8 @@ async function getHubSpotContactIdByEmail(email, hubspotAccessToken) {
 
 async function fetchEmailsForContacts(
   data1,
-  sourceAccessToken,
-  targetAccessToken
+  SOURCE_ACCESS_TOKEN,
+  DESTINATION_ACCESS_TOKEN
 ) {
   const results = [];
 
@@ -609,7 +600,7 @@ async function fetchEmailsForContacts(
       const url = `https://api.hubapi.com/engagements/v1/engagements/associated/CONTACT/${data.id}/paged?limit=100`;
       const response = await axios.get(url, {
         headers: {
-          Authorization: `Bearer ${sourceAccessToken}`,
+          Authorization: `Bearer ${SOURCE_ACCESS_TOKEN}`,
           "Content-Type": "application/json",
         },
       });
@@ -634,7 +625,7 @@ async function fetchEmailsForContacts(
         const contactUrl = `https://api.hubapi.com/crm/v3/objects/contacts/${contactId}`;
         const contactResponse = await axios.get(contactUrl, {
           headers: {
-            Authorization: `Bearer ${sourceAccessToken}`,
+            Authorization: `Bearer ${SOURCE_ACCESS_TOKEN}`,
             "Content-Type": "application/json",
           },
         });
@@ -651,7 +642,7 @@ async function fetchEmailsForContacts(
         let getResponse = await searchContactByEmail(
           "https://api.hubapi.com/crm/v3/objects/contacts/search",
           contactEmail,
-          targetAccessToken
+          DESTINATION_ACCESS_TOKEN
         );
 
         if (getResponse.results.length === 0) {
@@ -675,7 +666,7 @@ async function fetchEmailsForContacts(
               // Step 1: Download the attachment from the source HubSpot
               const fileData = await downloadAttachment(
                 attachment.id,
-                sourceAccessToken
+                SOURCE_ACCESS_TOKEN
               );
               // console.log("fileData----------------->", fileData);
               // console.log(`Downloaded file ${attachment.id}`);
@@ -689,7 +680,7 @@ async function fetchEmailsForContacts(
                 email,
                 hubSpotContactId,
                 uploadFileId,
-                targetAccessToken
+                DESTINATION_ACCESS_TOKEN
               );
             } catch (error) {
               console.error(
