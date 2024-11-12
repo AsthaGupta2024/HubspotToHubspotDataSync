@@ -103,11 +103,11 @@ app.post("/webhook", async (req, res) => {
     }
   }
 
-  // const syncNotes = await processNotesForContacts(data1, SOURCE_ACCESS_TOKEN);
+  const syncNotes = await processNotesForContacts(data1, SOURCE_ACCESS_TOKEN);
   const syncTasks = await processTaskForContacts(data1, SOURCE_ACCESS_TOKEN);
-  // const syncMeetings = await processMeetingForContacts(data1, SOURCE_ACCESS_TOKEN);
-  // const syncCalls = await processCallForContacts(data1, SOURCE_ACCESS_TOKEN);
-  // const fetchEmail1 = fetchEmailsForContacts(data1, SOURCE_ACCESS_TOKEN, DESTINATION_ACCESS_TOKEN);
+  const syncMeetings = await processMeetingForContacts(data1, SOURCE_ACCESS_TOKEN);
+  const syncCalls = await processCallForContacts(data1, SOURCE_ACCESS_TOKEN);
+  const fetchEmail1 = fetchEmailsForContacts(data1, SOURCE_ACCESS_TOKEN, DESTINATION_ACCESS_TOKEN);
 });
 async function getHubSpotContactIdByEmail(email, accessToken) {
   const url = `${BASE_URI}/crm/v3/objects/contacts/search`;
@@ -475,7 +475,7 @@ async function fetchCallsFromHubSpot(dataId, SOURCE_ACCESS_TOKEN) {
 }
 
 // Function to sync calls with another HubSpot instance
-async function syncCallsWithHubSpot(email, calls, DESTINATION_ACCESS_TOKEN, recordingUrl) {
+async function syncCallsWithHubSpot(email, calls, DESTINATION_ACCESS_TOKEN) {
   const hubSpotContactId = await getHubSpotContactIdByEmail(email, DESTINATION_ACCESS_TOKEN);
 
   if (!hubSpotContactId) {
@@ -529,60 +529,6 @@ async function syncCallsWithHubSpot(email, calls, DESTINATION_ACCESS_TOKEN, reco
     }
   }
 }
-
-// async function syncCallsWithHubSpot(email, calls, DESTINATION_ACCESS_TOKEN) {
-//   const hubSpotContactId = await getHubSpotContactIdByEmail(
-//     email,
-//     DESTINATION_ACCESS_TOKEN
-//   );
-//   // console.log("hubSpotContactId", hubSpotContactId);
-//   if (!hubSpotContactId) {
-//     console.error(`No HubSpot contact found for email: ${email}`);
-//     return;
-//   }
-
-//   for (const call of calls) {
-//     try {
-//       const response = await axios.post(
-//         `${BASE_URI}/engagements/v1/engagements`,
-//         {
-//           properties: {
-//             hs_call_body: call.properties.hs_call_body || "No call content",
-//             hs_timestamp: call.engagement.timestamp,
-//           },
-//           engagement: {
-//             active: true,
-//             type: "CALL",
-//             timestamp: call.engagement.timestamp,
-//           },
-//           associations: {
-//             contactIds: [hubSpotContactId],
-//           },
-//           metadata: {
-//             body: call.metadata.body || "No call notes available",
-//             status: call.metadata.status || "COMPLETED",
-//           },
-//         },
-//         {
-//           headers: {
-//             Authorization: `Bearer ${DESTINATION_ACCESS_TOKEN}`,
-//             "Content-Type": "application/json",
-//           },
-//         }
-//       );
-//       console.log(
-//         `Call for Contact ${hubSpotContactId} synced successfully:`,
-//         response.data
-//       );
-//     } catch (error) {
-//       console.error(
-//         `Error syncing call for Contact ${hubSpotContactId}:`,
-//         error.response ? error.response.data : error.message
-//       );
-//     }
-//   }
-// }
-
 
 async function fetchEmailsForContacts(
   data1,
