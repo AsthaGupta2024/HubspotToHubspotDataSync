@@ -2285,31 +2285,10 @@ async function createEngagementWithCompanyAttachment(
     );
   }
 }
-// app.get("/fetch-deals", async (req, res) => {
-//   console.log("Entry point");
-//   fs.readFile("/home/astha-2757/Downloads/csvjson_deala.json", "utf8", async (err, data) => {
-//     if (err) throw err;
-//     const deals = JSON.parse(data).slice(0, 15);
-//     // console.log("Deals:", deals);
-//     for (const deal of deals) {
-//       // console.log("deal", deal);
-//        const newDealV3 = new HubDealV2({
-//         dealId: deal["Record ID"],
-//         dealName: deal["Deal Name"],
-//         addedToListOn: deal["Added To List On"],
-//         dealStage: deal["Deal Stage"],
-//         pipeline: deal["Pipeline"],
-//         closeDate: deal["Close Date"],
-//         dealOwner: deal["Deal owner"],
-//         Amount: deal["Amount"],
-//       }
-//       );
-//       await newDealV3.save();
-//     }
-//     console.log("Deals saved successfully in HubCompaniesV2 collection!");
-//     res.status(200).send("Data saved to HubCompaniesV2 collection!");
-//   });
-// });
+
+
+
+
 // Function to search for a deal by name in HubSpot
 const searchDealByDealName = async (url, dealName, accessToken) => {
   console.log("Searching for deal with name:", dealName);
@@ -2352,6 +2331,7 @@ const dealSchema = new mongoose.Schema({
   addedToListOn: String,
   dealStage: String,
   pipeline: String,
+  closeDate:String,
   dealOwner: String,
   Amount: String
 });
@@ -2360,84 +2340,50 @@ const HubDealV2 = mongoose.model("HubDealV2", dealSchema);
 // Define mappings for pipeline and deal stage
 const pipelineMapping = {
   "Sales Pipeline": "default",
-  "Historic":"661023640",
-  "Client Services":"661774968"
+  "Historic":"888137960",
+  "Client Services":"561278695"
 
 };
-// const dealStageMapping = {
-//   "Closed won": "971963051",
-// };
 
 const dealStageMapping = {
   "Sales Pipeline": {
-      "Awaiting Feedback":"972022962",
-      "Closed Lost":"closedlost",
-      "Closed won": "closedwon",
-      "Dormant":"970989491",
-      "Opportunity Didn't Materialise":"972111417",
-      "Pitch": "970989492",
-      "Qualified Out":"972111418",
-      "Sales Qualified Lead (SQL)":"971661655",
-      "Proposal":"972052610"
+      "Awaiting Feedback":"842063840",
+      "Closed Lost":"842063845",
+      "Closed won": "842063842",
+      "Dormant":"842063845",
+      "Opportunity Didn't Materialise":"842063844",
+      "Pitch": "842063839",
+      "Qualified Out":"842063845",
+      "Sales Qualified Lead (SQL)":"appointmentscheduled",
+      "Proposal":"842063839"
       
   },
   "Historic": {
-      "Closed lost": "971963052",
-      "Closed won": "971963051",
-      "Qualified": "972022961",
+      "Closed lost": "1251211503",
+      "Closed won": "1251211502",
+      "Qualified": "1274724564",
   },
   "Client Services": {
-      "Awaiting Decision":"970710862",
-      "Billing":"972111419",
-      "Closed lost":"972061817",
-      "Dormant":"971963182",
-      "Identified Opportunity":"972052613",
-      "Internal Brief / Costing":"972111420",
-      "Proposal":"971909191",
-      "Resourcing / Planning":"970989494",
-      "Statement of Work":"971909192",
-      "Closed won": "972061816"
+      "Awaiting Decision":"842177261",
+      "Billing":"842031587",
+      "Closed lost":"842177264",
+      "Dormant":"842031588",
+      "Identified Opportunity":"842177258",
+      "Internal Brief / Costing":"842177259",
+      "Proposal":"842177260",
+      "Resourcing / Planning":"842177263",
+      "Statement of Work":"842177262",
+      
   }
 };
-
-
-// Function to fetch pipeline and deal stage mappings dynamically from HubSpot (optional)
-const fetchPipelineAndStageMappings = async (SOURCE_ACCESS_TOKEN) => {
-  try {
-    const response = await axios.get(`${BASE_URI}/crm/v3/pipelines/deals`, {
-      headers: {
-        Authorization: `Bearer ${SOURCE_ACCESS_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    const pipelines = response.data.results;
-    console.log("pipelines",pipelines);
-    const pipelineMap = {};
-    const dealStageMap = {};
-
-    pipelines.forEach((pipeline) => {
-      pipelineMap[pipeline.label] = pipeline.id;
-      pipeline.stages.forEach((stage) => {
-        dealStageMap[stage.label] = stage.id;
-      });
-    });
-
-    return { pipelineMap, dealStageMap };
-  } catch (error) {
-    console.error("Error fetching pipelines and deal stages:", error.message);
-    throw error;
-  }
-};
-
 // Route to fetch deals and save to the database
 app.get("/fetch-deals", async (req, res) => {
   console.log("Entry point");
-  fs.readFile("/home/astha-2757/Downloads/csvjson40.json", "utf8", async (err, data) => {
+  fs.readFile("/home/astha-2757/Downloads/csvjson814.json", "utf8", async (err, data) => {
     if (err) throw err;
 
     // Parse and process the deals (limiting to the first 15 deals)
-    const deals = JSON.parse(data).slice(0, 20);
+    const deals = JSON.parse(data).slice(0, 820);
 
     for (const deal of deals) {
       const newDealV3 = new HubDealV2({
@@ -2457,18 +2403,15 @@ app.get("/fetch-deals", async (req, res) => {
         console.error("Error saving deal:", error.message);
       }
     }
-
+    
     console.log("Deals saved successfully in HubCompaniesV2 collection!");
     res.status(200).send("Data saved to HubCompaniesV2 collection!");
   });
 });
 app.get("/deals", async (req, res) => {
   try {
-    // const { pipelineMap, dealStageMap } = await fetchPipelineAndStageMappings(SOURCE_ACCESS_TOKEN);
-    // console.log("pipelineMap",pipelineMap);
-    // console.log("dealStageMap",dealStageMap);
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = parseInt(req.query.limit) || 820;
 
     // Fetch deals from the database with pagination
     const dealsFromDB = await HubDealV2.find()
@@ -2476,25 +2419,28 @@ app.get("/deals", async (req, res) => {
       .limit(limit);
       const processedContacts = [];
     for (const deal of dealsFromDB) {
+      // console.log("deal---------->",deal)
       try {
         const { dealId, dealName, pipeline, dealStage, Amount } = deal;
-        console.log("pipeline",pipeline);
-        console.log("dealStage",dealStage);
-        console.log(`Processing deal: ${dealName}`);
+        // console.log(`Processing deal: ${dealName}`);
+      const dealData1= await getDealById(dealId, SOURCE_ACCESS_TOKEN)
+      const createdDate=dealData1.properties.createdate;
+      const date = new Date(createdDate);
+      const createDateTimestamp = date.getTime(); 
 
+      const closeDate=dealData1.properties.closedate;
+      const date1 = new Date(closeDate); 
+      const createcloseDateTimestamp = date1.getTime(); 
+      
         const mappedPipeline = pipelineMapping[pipeline] || "default-pipeline";
-        console.log("mappedPipeline",mappedPipeline);
-        // const mappedDealStage = dealStageMapping[dealStage] || "default-stage";
         const mappedDealStage =dealStageMapping[pipeline]?.[dealStage] || "default-stage";
-        console.log("mappedDealStage",mappedDealStage);
-        // const mappedPipeline = pipelineMap[pipeline] || "default-pipeline-id-destination";
-        // console.log("mappedPipeline",mappedPipeline);
-        // const mappedDealStage = dealStageMap[dealStage] || "default-stage-id-destination";
-        // console.log("mappedDealStage",mappedDealStage);
+    
         const dealData = {
           properties: {
            dealname: dealName,
             amount: Amount,
+            createdate:createDateTimestamp,
+            closedate:createcloseDateTimestamp,
             pipeline: mappedPipeline,
             dealstage: mappedDealStage,
           },
@@ -2557,7 +2503,6 @@ app.get("/deals", async (req, res) => {
         console.log("globalHubspotDealId", globalHubspotDealId);
         // Associate contacts
         await associateContacts(dealId, globalHubspotDealId);
-
         // Associate companies
         await associateCompanies(dealId, globalHubspotDealId);
         processedContacts.push({
@@ -2575,14 +2520,35 @@ app.get("/deals", async (req, res) => {
     await processMeetingForDeals(processedContacts, SOURCE_ACCESS_TOKEN);
     await processCallForDeals(processedContacts, SOURCE_ACCESS_TOKEN);
     await fetchEmailsForDeals(processedContacts, SOURCE_ACCESS_TOKEN, DESTINATION_ACCESS_TOKEN);
-    // res.status(200).json({ message: "Companies processed successfully!" });
-    // res.status(200).send("Deals processed successfully");
   } catch (error) {
     console.error(`Error fetching deals: ${error.message}`);
     res.status(500).send("An error occurred while processing deals.");
   }
 });
+// Function to get deal by ID
+async function getDealById(dealId, accessToken) {
+  const url = `https://api.hubapi.com/crm/v3/objects/deals/${dealId}`;
+  
+  try {
+      const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+          }
+      });
 
+      if (!response.ok) {
+          throw new Error(`Error fetching deal: ${response.status} - ${response.statusText}`);
+      }
+
+      const dealData = await response.json();
+      return dealData;
+  } catch (error) {
+      console.error('Error:', error.message);
+      return null;
+  }
+}
 // Function to associate contacts with a deal
 async function associateContacts(sourceDealId, destinationDealId) {
   try {
@@ -4131,8 +4097,6 @@ async function syncDealsCallsWithHubSpot(dealName, calls) {
     }
   }
 }
-
-
 //<-----------------------------------email for Deals--------------------------------------->
 async function fetchEmailsForDeals(
   data1,
@@ -4193,7 +4157,7 @@ async function fetchEmailsForDeals(
         console.log("dealName--------", dealName)
         // Search for the HubSpot deal by name
         const hubSpotDeal = await searchDealByDealName(
-          "https://api.hubapi.com/crm/v3/objects/deals/search",
+          `https://api.hubapi.com/crm/v3/objects/deals/search`,
           dealName,
           DESTINATION_ACCESS_TOKEN
         );
@@ -4421,7 +4385,6 @@ async function createEngagementWithDealAttachment(
     );
   }
 }
-
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
